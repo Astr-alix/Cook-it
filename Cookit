@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cook'it</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cook'it">
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2917/2917633.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2917/2917633.png">
+
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Cook it","short_name":"Cook it","start_url":".","display":"standalone","background_color":"#fdfbfd","theme_color":"#9b59b6","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2917/2917633.png","sizes":"512x512","type":"image/png"}]}' />
+
+    <style>
+        :root { --primary: #9b59b6; --primary-pastel: #f5eef8; --dark: #2c3e50; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fdfbfd; margin: 0; padding: 0; }
+        
+        /* Header Cook'it */
+        .header-bar { background: white; padding: 15px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 10px rgba(155,89,182,0.05); text-align: center; }
+        .app-title { font-size: 26px; font-weight: 800; color: var(--dark); margin: 0 0 10px 0; font-style: italic; letter-spacing: -0.5px; cursor: pointer; }
+        .app-title span { color: var(--primary); }
+        .search-bar { width: 100%; padding: 12px 15px; border: 1px solid #ebdcf2; border-radius: 25px; font-size: 15px; background: #f8f1fb; outline: none; color: var(--dark); }
+        .search-bar::placeholder { color: #bca0ca; }
+        .search-bar:focus { border-color: var(--primary); background: white; }
+        
+        .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+        
+        /* Barre d'outils interne aux catégories */
+        .category-toolbar { display: none; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .nav-back { display: flex; align-items: center; color: var(--primary); font-weight: bold; cursor: pointer; font-size: 15px; }
+        .cat-actions { display: flex; gap: 8px; }
+        .btn-cat-manage { background: #fdfbfd; border: 1px solid #ebdcf2; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--dark); }
+        .btn-cat-manage.danger { background: #fce4e4; color: #c0392b; border-color: #fad3d3; }
+
+        /* Grilles */
+        .grid-catalog { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+        .grid-item { position: relative; border-radius: 16px; overflow: hidden; padding-top: 100px; background: #e8e4eb; box-shadow: 0 4px 12px rgba(155,89,182,0.08); cursor: pointer; transition: transform 0.2s; }
+        .grid-item:active { transform: scale(0.97); }
+        .grid-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Overlays */
+        .grid-item-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(44,62,80,0.85)); padding: 25px 10px 10px 10px; color: white; }
+        .grid-item-title { font-size: 14px; font-weight: bold; margin: 0; line-height: 1.2; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .grid-item-cat { font-size: 10px; text-transform: uppercase; color: #e8d0f2; opacity: 0.9; letter-spacing: 0.5px; display: block; margin-bottom: 2px; font-weight: 600; }
+
+        /* Bouton Flottant Général */
+        .fab { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 28px; font-weight: bold; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center; }
+        
+        /* Modales */
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(44, 62, 80, 0.5); z-index: 100; display: none; align-items: flex-end; }
+        .modal-content { background: white; width: 100%; max-height: 85vh; border-radius: 24px 24px 0 0; padding: 20px; overflow-y: auto; box-shadow: 0 -5px 25px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f5eef8; padding-bottom: 10px; }
+        .modal-header h4 { margin: 0; color: var(--dark); font-size: 18px; }
+        .close-modal { font-size: 24px; color: #bca0ca; cursor: pointer; border: none; background: none; }
+
+        /* Formulaire */
+        label { font-size: 13px; font-weight: bold; color: #9b8a9f; display: block; margin-top: 12px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ebdcf2; border-radius: 8px; box-sizing: border-box; font-size: 14px; font-family: inherit; color: var(--dark); background: #fdfbfd; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: white; }
+        
+        .dynamic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .btn-add { background: var(--primary-pastel); color: var(--primary); border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-remove { background: #fce4e4; color: #c0392b; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .file-label { display: block; background: #fdfbfd; border: 2px dashed #ebdcf2; padding: 15px; text-align: center; border-radius: 8px; cursor: pointer; color: var(--primary); font-size: 14px; margin-top: 6px; font-weight: 500; }
+        .img-preview-box { width: 100%; max-height: 120px; object-fit: cover; border-radius: 8px; margin-top: 8px; display: none; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 10px rgba(155, 89, 182, 0.2); }
+
+        /* Vue Détaillée */
+        .detail-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(44, 62, 80, 0.6); z-index: 150; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .detail-card { background: white; width: 100%; max-width: 450px; border-radius: 20px; overflow: hidden; max-height: 80vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .detail-img { width: 100%; height: 180px; object-fit: cover; background: #ebdcf2; }
+        .detail-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .detail-badge { background: var(--primary-pastel); color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-bottom: 8px; }
+        
+        .detail-actions { position: absolute; top: 15px; left: 15px; display: flex; gap: 8px; }
+        .detail-del { background: rgba(231, 76, 60, 0.9); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .detail-edit { background: rgba(241, 196, 15, 0.9); color: #2c3e50; border: none; padding: 6px 12px; border-radius: 15px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .detail-close { position: absolute; top: 15px; right: 15px; background: rgba(44,62,80,0.4); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 14px; }
+        
+        ul, ol { padding-left: 20px; font-size: 14px; color: #555; }
+        li { margin-bottom: 6px; }
+        .comment-box { background: var(--primary-pastel); border-left: 3px solid var(--primary); padding: 10px; border-radius: 4px; margin-top: 15px; font-size: 13px; color: var(--dark); font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div style="max-width:500px; margin:0 auto;">
+            <h1 class="app-title" onclick="navigateToHome()">Cook'<span>it</span></h1>
+            <input type="text" id="search" class="search-bar" placeholder="🔍 Rechercher un plat..." oninput="handleSearch(this.value)">
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="category-toolbar" class="category-toolbar">
+            <div class="nav-back" onclick="navigateToHome()">⬅️ Catégories</div>
+            <div class="cat-actions">
+                <button class="btn-cat-manage" onclick="openCatModalForEdit()">✏️ Modifier</button>
+                <button class="btn-cat-manage danger" onclick="deleteCurrentCategory()">🗑️ Supprimer</button>
+            </div>
+        </div>
+        
+        <div id="grid-catalog" class="grid-catalog"></div>
+    </div>
+
+    <button id="main-fab" class="fab" onclick="handleFabClick()">+</button>
+
+    <div id="recipe-modal" class="modal" onclick="if(event.target == this) closeModal('recipe-modal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="recipe-modal-title">Nouvelle Fiche Recette</h4>
+                <button class="close-modal" onclick="closeModal('recipe-modal')">✕</button>
+            </div>
+            
+            <input type="text" id="title" placeholder="Nom du plat (ex: Wrap César)">
+            
+            <label>Catégorie</label>
+            <select id="category"></select>
+
+            <label>Photo du plat</label>
+            <label class="file-label" for="photo-file">📸 Prendre une photo / Galerie</label>
+            <input type="file" id="photo-file" accept="image/*" style="display:none;" onchange="previewImage(this, 'img-preview')">
+            <img id="img-preview" class="img-preview-box" alt="Aperçu">
+
+            <label>Ingrédients <button class="btn-add" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;" onclick="addInputRow('ingredients-container')">+</button></label>
+            <div id="ingredients-container"></div>
+
+            <label>Étapes de préparation <button class="btn-add" style="padding: 2px 8px; font-size: 12px; margin-left: 5px;" onclick="addInputRow('steps-container')">+</button></label>
+            <div id="steps-container"></div>
+
+            <label>Notes / Commentaires</label>
+            <textarea id="comment" rows="2" placeholder="Ex: 350 kcal, idéal pour le soir..."></textarea>
+
+            <button id="btn-submit-recipe" class="btn-submit" onclick="saveRecipe()">Ajouter au catalogue</button>
+        </div>
+    </div>
+
+    <div id="cat-modal" class="modal" onclick="if(event.target == this) closeModal('cat-modal')">
+        <div class="modal-content" style="max-height: 70vh;">
+            <div class="modal-header">
+                <h4 id="cat-modal-title">Créer une catégorie</h4>
+                <button class="close-modal" onclick="closeModal('cat-modal')">✕</button>
+            </div>
+            <label>Nom de la catégorie</label>
+            <input type="text" id="cat-name-input" placeholder="Ex: Ptit-déj, Desserts...">
+            
+            <label>Image de fond de la catégorie</label>
+            <label class="file-label" for="cat-photo-file">🖼️ Choisir une image dans mes dossiers</label>
+            <input type="file" id="cat-photo-file" accept="image/*" style="display:none;" onchange="previewImage(this, 'cat-img-preview')">
+            <img id="cat-img-preview" class="img-preview-box" alt="Aperçu">
+
+            <button id="btn-submit-cat" class="btn-submit" onclick="saveCategory()">Enregistrer</button>
+        </div>
+    </div>
+
+    <div id="detail-modal" class="detail-modal" onclick="if(event.target == this) closeModal('detail-modal')">
+        <div class="detail-card">
+            <div class="detail-actions">
+                <button id="detail-del-btn" class="detail-del">Supprimer</button>
+                <button id="detail-edit-btn" class="detail-edit">Modifier</button>
+            </div>
+            <button class="detail-close" onclick="closeModal('detail-modal')">✕</button>
+            <img id="detail-img" class="detail-img" src="" alt="">
+            <div class="detail-body">
+                <span id="detail-badge" class="detail-badge"></span>
+                <h3 id="detail-title" style="margin:5px 0 15px 0; color: var(--dark);"></h3>
+                <strong style="color: var(--primary);">Ingrédients :</strong>
+                <ul id="detail-ingredients"></ul>
+                <div id="detail-steps-section">
+                    <strong style="color: var(--primary);">Préparation :</strong>
+                    <ol id="detail-steps"></ol>
+                </div>
+                <div id="detail-comment" class="comment-box"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const FIREBASE_URL = "https://cook-it-b7de0-default-rtdb.europe-west1.firebasedatabase.app/";
+    
+    const categoryPlaceholders = {
+        "One-Pan": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&q=80",
+        "Salades": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&q=80",
+        "Wraps": "https://images.unsplash.com/photo-1626700051175-6518c4793f06?w=300&q=80",
+        "Défaut": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=300&q=80"
+    };
+
+    let userRecipes = JSON.parse(localStorage.getItem('proRecipes')) || [];
+    let customCategories = [];
+    
+    let currentView = "categories"; 
+    let selectedCategory = "";
+    let currentBase64Image = "";       
+    let currentCatBase64Image = "";    
+    let editingRecipeId = null; 
+    let isEditingCategory = false;     
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function loadCategories() {
+        let rawCats = localStorage.getItem('proCategoriesObj') || localStorage.getItem('proCategories');
+        try {
+            let parsed = JSON.parse(rawCats);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                if (typeof parsed[0] === 'string') {
+                    customCategories = parsed.map(c => ({ name: c, customImg: "" }));
+                } else {
+                    customCategories = parsed;
+                }
+            } else { throw new Error(); }
+        } catch(e) {
+            customCategories = [
+                { name: "One-Pan", customImg: "" },
+                { name: "Salades", customImg: "" },
+                { name: "Wraps", customImg: "" }
+            ];
+        }
+        localStorage.setItem('proCategoriesObj', JSON.stringify(customCategories));
+    }
+    loadCategories();
+
+    function handleFabClick() {
+        if (currentView === "categories") {
+            isEditingCategory = false;
+            document.getElementById('cat-modal-title').innerText = "Créer une catégorie";
+            document.getElementById('cat-name-input').value = "";
+            document.getElementById('cat-img-preview').style.display = "none";
+            currentCatBase64Image = "";
+            openModal('cat-modal');
+        } else if (currentView === "recipes") {
+            openRecipeForm();
+        }
+    }
+
+    function handleSearch(query) {
+        if (query.trim() !== "") {
+            currentView = "recipes";
+            document.getElementById('category-toolbar').style.display = "flex";
+            renderRecipesGrid(query.toLowerCase().trim(), true);
+        } else {
+            navigateToHome();
+        }
+    }
+
+    function navigateToHome() {
+        currentView = "categories";
+        selectedCategory = "";
+        document.getElementById('search').value = "";
+        document.getElementById('category-toolbar').style.display = "none";
+        renderCategoriesGrid();
+    }
+
+    function navigateToCategory(catName) {
+        currentView = "recipes";
+        selectedCategory = catName;
+        document.getElementById('category-toolbar').style.display = "flex";
+        renderRecipesGrid(catName, false);
+    }
+
+    function renderCategoriesGrid() {
+        const grid = document.getElementById('grid-catalog');
+        grid.innerHTML = '';
+        
+        customCategories.forEach(cat => {
+            const recipeWithImg = userRecipes.find(r => r.category === cat.name && r.image);
+            const bgImg = cat.customImg || (recipeWithImg ? recipeWithImg.image : (categoryPlaceholders[cat.name] || categoryPlaceholders["Défaut"]));
+
+            const item = document.createElement('div');
+            item.className = 'grid-item';
+            item.innerHTML = `
+                <img src="${bgImg}" alt="${cat.name}">
+                <div class="grid-item-overlay">
+                    <p class="grid-item-title" style="font-size:16px; text-transform:capitalize;">${cat.name}</p>
+                </div>
+            `;
+            item.onclick = () => navigateToCategory(cat.name);
+            grid.appendChild(item);
+        });
+    }
+
+    function renderRecipesGrid(filterValue, isGlobalSearch = false) {
+        const grid = document.getElementById('grid-catalog');
+        grid.innerHTML = '';
+
+        const filtered = userRecipes.filter(r => {
+            if (isGlobalSearch) {
+                return r.title.toLowerCase().includes(filterValue) || r.category.toLowerCase().includes(filterValue);
+            } else {
+                return r.category === filterValue;
+            }
+        });
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#9b8a9f; font-size:14px; margin-top:40px;">Aucune recette enregistrée ici.</p>';
+            return;
+        }
+
+        filtered.slice().reverse().forEach(r => {
+            const imgSrc = r.image || categoryPlaceholders["Défaut"];
+            const item = document.createElement('div');
+            item.className = 'grid-item';
+            item.onclick = () => showDetail(r);
+            item.innerHTML = `
+                <img src="${imgSrc}" alt="${r.title}">
+                <div class="grid-item-overlay">
+                    <span class="grid-item-cat">${r.category}</span>
+                    <p class="grid-item-title">${r.title}</p>
+                </div>
+            `;
+            grid.appendChild(item);
+        });
+    }
+
+    function openCatModalForEdit() {
+        const currentCatObj = customCategories.find(c => c.name === selectedCategory);
+        if (!currentCatObj) return;
+
+        isEditingCategory = true;
+        document.getElementById('cat-modal-title').innerText = "Modifier la catégorie";
+        document.getElementById('cat-name-input').value = currentCatObj.name;
+        
+        if (currentCatObj.customImg) {
+            document.getElementById('cat-img-preview').src = currentCatObj.customImg;
+            document.getElementById('cat-img-preview').style.display = "block";
+            currentCatBase64Image = currentCatObj.customImg;
+        } else {
+            document.getElementById('cat-img-preview').style.display = "none";
+            currentCatBase64Image = "";
+        }
+        openModal('cat-modal');
+    }
+
+    async function saveCategory() {
+        const nameInput = document.getElementById('cat-name-input').value.trim();
+        if (!nameInput) return alert("Le nom de la catégorie ne peut pas être vide.");
+
+        if (isEditingCategory) {
+            const currentCatObj = customCategories.find(c => c.name === selectedCategory);
+            if (!currentCatObj) return;
+
+            if (nameInput.toLowerCase() !== selectedCategory.toLowerCase() && customCategories.some(c => c.name.toLowerCase() === nameInput.toLowerCase())) {
+                return alert("Une catégorie porte déjà ce nom.");
+            }
+
+            if (nameInput !== selectedCategory) {
+                userRecipes.forEach(async (recipe) => {
+                    if (recipe.category === selectedCategory) {
+                        recipe.category = nameInput;
+                        if (FIREBASE_URL && recipe.fbKey) {
+                            await fetch(`${FIREBASE_URL}/pro_recipes/${recipe.fbKey}/category.json`, { method: 'PUT', body: JSON.stringify(nameInput) });
+                        }
+                    }
+                });
+                localStorage.setItem('proRecipes', JSON.stringify(userRecipes));
+            }
+
+            currentCatObj.name = nameInput;
+            currentCatObj.customImg = currentCatBase64Image;
+            selectedCategory = nameInput;
+
+        } else {
+            if (customCategories.some(c => c.name.toLowerCase() === nameInput.toLowerCase())) {
+                return alert("Cette catégorie existe déjà !");
+            }
+            customCategories.push({ name: nameInput, customImg: currentCatBase64Image });
+        }
+
+        localStorage.setItem('proCategoriesObj', JSON.stringify(customCategories));
+        if (FIREBASE_URL) {
+            await fetch(`${FIREBASE_URL}/pro_categories_obj.json`, { method: 'PUT', body: JSON.stringify(customCategories) });
+        }
+
+        closeModal('cat-modal');
+        if (isEditingCategory) {
+            navigateToCategory(selectedCategory);
+        } else {
+            renderCategoriesGrid();
+        }
+    }
+
+    async function deleteCurrentCategory() {
+        const hasRecipes = userRecipes.some(r => r.category === selectedCategory);
+        if (hasRecipes) {
+            return alert("Impossible de supprimer cette catégorie car elle contient des recettes.");
+        }
+
+        if (confirm(`Supprimer définitivement la catégorie "${selectedCategory}" ?`)) {
+            customCategories = customCategories.filter(c => c.name !== selectedCategory);
+            localStorage.setItem('proCategoriesObj', JSON.stringify(customCategories));
+            
+            if (FIREBASE_URL) {
+                await fetch(`${FIREBASE_URL}/pro_categories_obj.json`, { method: 'PUT', body: JSON.stringify(customCategories) });
+            }
+            navigateToHome();
+        }
+    }
+
+    function previewImage(input, previewId) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (previewId === 'cat-img-preview') {
+                    currentCatBase64Image = e.target.result;
+                } else {
+                    currentBase64Image = e.target.result;
+                }
+                const preview = document.getElementById(previewId);
+                preview.src = e.target.result;
+                preview.style.display = "block";
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function addInputRow(containerId, value = "") {
+        const container = document.getElementById(containerId);
+        const placeholderText = containerId === 'ingredients-container' ? 'Ex: 150g de poulet' : 'Ex: Étape suivante';
+        const inputClass = containerId === 'ingredients-container' ? 'ing-input' : 'step-input';
+        
+        const row = document.createElement('div');
+        row.className = 'dynamic-row';
+        row.innerHTML = `
+            <input type="text" class="${inputClass}" placeholder="${placeholderText}" value="${value.replace(/"/g, '&quot;')}">
+            <button class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function openRecipeForm(recipe = null) {
+        const select = document.getElementById('category');
+        select.innerHTML = customCategories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+        
+        document.getElementById('ingredients-container').innerHTML = "";
+        document.getElementById('steps-container').innerHTML = "";
+
+        if (recipe) {
+            editingRecipeId = recipe.id;
+            document.getElementById('recipe-modal-title').innerText = "Modifier la Recette";
+            document.getElementById('title').value = recipe.title;
+            document.getElementById('category').value = recipe.category;
+            document.getElementById('comment').value = recipe.comment || "";
+            currentBase64Image = recipe.image || "";
+            
+            if(recipe.image) {
+                document.getElementById('img-preview').src = recipe.image;
+                document.getElementById('img-preview').style.display = "block";
+            } else {
+                document.getElementById('img-preview').style.display = "none";
+            }
+
+            recipe.ingredients.forEach(i => addInputRow('ingredients-container', i));
+            if(recipe.steps && recipe.steps.length > 0) {
+                recipe.steps.forEach(s => addInputRow('steps-container', s));
+            } else {
+                addInputRow('steps-container');
+            }
+            document.getElementById('btn-submit-recipe').innerText = "Sauvegarder";
+        } else {
+            editingRecipeId = null;
+            document.getElementById('recipe-modal-title').innerText = "Nouvelle Fiche Recette";
+            document.getElementById('title').value = "";
+            document.getElementById('category').value = selectedCategory || customCategories[0].name;
+            document.getElementById('comment').value = "";
+            currentBase64Image = "";
+            document.getElementById('img-preview').style.display = "none";
+            
+            addInputRow('ingredients-container');
+            addInputRow('steps-container');
+            document.getElementById('btn-submit-recipe').innerText = "Ajouter au catalogue";
+        }
+        openModal('recipe-modal');
+    }
+
+    async function saveRecipe() {
+        const title = document.getElementById('title').value.trim();
+        const category = document.getElementById('category').value;
+        const comment = document.getElementById('comment').value.trim();
+        const ingredients = Array.from(document.querySelectorAll('.ing-input')).map(el => el.value.trim()).filter(v => v !== "");
+        const steps = Array.from(document.querySelectorAll('.step-input')).map(el => el.value.trim()).filter(v => v !== "");
+
+        if(!title || ingredients.length === 0) return alert("Remplis au moins le titre et un ingrédient !");
+
+        if (editingRecipeId) {
+            const index = userRecipes.findIndex(r => r.id === editingRecipeId);
+            if(index !== -1) {
+                const fbKey = userRecipes[index].fbKey;
+                userRecipes[index] = { id: editingRecipeId, title, category, image: currentBase64Image, ingredients, steps, comment, fbKey };
+                localStorage.setItem('proRecipes', JSON.stringify(userRecipes));
+                
+                if(FIREBASE_URL && fbKey) {
+                    await fetch(`${FIREBASE_URL}/pro_recipes/${fbKey}.json`, { 
+                        method: 'PUT', 
+                        body: JSON.stringify({ id: editingRecipeId, title, category, image: currentBase64Image, ingredients, steps, comment }) 
+                    });
+                }
+            }
+        } else {
+            const newRec = { id: Date.now(), title, category, image: currentBase64Image, ingredients, steps, comment };
+            userRecipes.push(newRec);
+            localStorage.setItem('proRecipes', JSON.stringify(userRecipes));
+
+            if(FIREBASE_URL) {
+                await fetch(`${FIREBASE_URL}/pro_recipes.json`, { method: 'POST', body: JSON.stringify(newRec) });
+            }
+        }
+
+        closeModal('recipe-modal');
+        if (currentView === "categories") {
+            renderCategoriesGrid();
+        } else {
+            renderRecipesGrid(selectedCategory, false);
+        }
+    }
+
+    function showDetail(recipe) {
+        document.getElementById('detail-img').src = recipe.image || categoryPlaceholders["Défaut"];
+        document.getElementById('detail-badge').innerText = recipe.category;
+        document.getElementById('detail-title').innerText = recipe.title;
+        document.getElementById('detail-ingredients').innerHTML = recipe.ingredients.map(i => `<li>${i}</li>`).join('');
+        
+        const stepsContainer = document.getElementById('detail-steps');
+        if(recipe.steps && recipe.steps.length > 0 && recipe.steps[0] !== "") {
+            document.getElementById('detail-steps-section').style.display = "block";
+            stepsContainer.innerHTML = recipe.steps.map(s => `<li>${s}</li>`).join('');
+        } else {
+            document.getElementById('detail-steps-section').style.display = "none";
+        }
+
+        const commentBox = document.getElementById('detail-comment');
+        if(recipe.comment) {
+            commentBox.style.display = "block";
+            commentBox.innerHTML = `💡 ${recipe.comment}`;
+        } else {
+            commentBox.style.display = "none";
+        }
+
+        document.getElementById('detail-del-btn').onclick = () => deleteRecipe(recipe.id, recipe.fbKey);
+        document.getElementById('detail-edit-btn').onclick = () => {
+            closeModal('detail-modal');
+            openRecipeForm(recipe);
+        };
+        openModal('detail-modal');
+    }
+
+    async function deleteRecipe(id, fbKey) {
+        if(!confirm("Supprimer cette recette ?")) return;
+        userRecipes = userRecipes.filter(r => r.id !== id);
+        localStorage.setItem('proRecipes', JSON.stringify(userRecipes));
+
+        if(FIREBASE_URL && fbKey) {
+            await fetch(`${FIREBASE_URL}/pro_recipes/${fbKey}.json`, { method: 'DELETE' });
+        }
+        closeModal('detail-modal');
+        renderRecipesGrid(selectedCategory, false);
+    }
+
+    async function syncWithFirebase() {
+        if(!FIREBASE_URL) return;
+        try {
+            const resCat = await fetch(`${FIREBASE_URL}/pro_categories_obj.json`);
+            const dataCat = await resCat.json();
+            if(dataCat && Array.isArray(dataCat)) {
+                if (typeof dataCat[0] === 'string') {
+                    customCategories = dataCat.map(c => ({ name: c, customImg: "" }));
+                } else {
+                    customCategories = dataCat;
+                }
+                localStorage.setItem('proCategoriesObj', JSON.stringify(customCategories));
+            }
+
+            const resRec = await fetch(`${FIREBASE_URL}/pro_recipes.json`);
+            const dataRec = await resRec.json();
+            if(dataRec) {
+                userRecipes = [];
+                Object.keys(dataRec).forEach(key => { 
+                    userRecipes.push({ ...dataRec[key], fbKey: key }); 
+                });
+                localStorage.setItem('proRecipes', JSON.stringify(userRecipes));
+            }
+            if(currentView === "categories") {
+                renderCategoriesGrid();
+            } else {
+                renderRecipesGrid(selectedCategory, false);
+            }
+        } catch(e) { console.log("Sync..."); }
+    }
+
+    renderCategoriesGrid();
+    syncWithFirebase();
+    setInterval(syncWithFirebase, 12000);
+
+    // Enregistrement automatique du Service Worker générique requis pour valider le statut d'application
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch",()=>{});');
+    }
+</script>
+</body>
+</html>
