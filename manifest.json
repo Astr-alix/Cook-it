@@ -1,0 +1,17 @@
+{
+  "name": "Cook it",
+  "short_name": "Cookit",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#fdfbfd",
+  "theme_color": "#9b59b6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.imgur.com/W7S747b.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
